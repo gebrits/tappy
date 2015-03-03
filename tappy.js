@@ -1,121 +1,133 @@
-/*! Tappy! - a lightweight normalized tap event. Copyright 2013 @scottjehl, Filament Group, Inc. Licensed MIT */
-(function( w, $, undefined ){
+;
+(function(root) {
 
-	// handling flag is true when an event sequence is in progress (thx androood)
-	w.tapHandling = false;
-	w.tappy = true;
+	//DEPENDENCIES
+	//CommonJS
+	if (typeof exports !== 'undefined' && typeof require !== 'undefined') {
+		var Backbone = root.Backbone || require('backbone'),
+			$ = root.$ || Backbone.$;
+	}
 
-	var tap = function( $els ){
-		return $els.each(function(){
 
-			var $el = $( this ),
-				resetTimer,
-				startY,
-				startX,
-				cancel,
-				scrollTolerance = 10;
 
-			function trigger( e ){
-				$( e.target ).trigger( "tap", [ e, $( e.target ).attr( "href" ) ] );
-			}
+	/*! Tappy! - a lightweight normalized tap event. Copyright 2013 @scottjehl, Filament Group, Inc. Licensed MIT */
+	(function(w, $, undefined) {
 
-			function getCoords( e ){
-				var ev = e.originalEvent || e,
-					touches = ev.touches || ev.targetTouches;
+		// handling flag is true when an event sequence is in progress (thx androood)
+		w.tapHandling = false;
+		w.tappy = true;
 
-				if( touches ){
-					return [ touches[ 0 ].pageX, touches[ 0 ].pageY ];
-				}
-				else {
-					return null;
-				}
-			}
+		var tap = function($els) {
+			return $els.each(function() {
 
-			function start( e ){
-				if( e.touches && e.touches.length > 1 || e.targetTouches && e.targetTouches.length > 1 ){
-					return false;
+				var $el = $(this),
+					resetTimer,
+					startY,
+					startX,
+					cancel,
+					scrollTolerance = 10;
+
+				function trigger(e) {
+					$(e.target).trigger("tap", [e, $(e.target).attr("href")]);
 				}
 
-				var coords = getCoords( e );
-				startX = coords[ 0 ];
-				startY = coords[ 1 ];
-			}
+				function getCoords(e) {
+					var ev = e.originalEvent || e,
+						touches = ev.touches || ev.targetTouches;
 
-			// any touchscroll that results in > tolerance should cancel the tap
-			function move( e ){
-				if( !cancel ){
-					var coords = getCoords( e );
-					if( coords && ( Math.abs( startY - coords[ 1 ] ) > scrollTolerance || Math.abs( startX - coords[ 0 ] ) > scrollTolerance ) ){
-						cancel = true;
+					if (touches) {
+						return [touches[0].pageX, touches[0].pageY];
+					} else {
+						return null;
 					}
 				}
-			}
 
-			function end( e ){
-				clearTimeout( resetTimer );
-				resetTimer = setTimeout( function(){
-					w.tapHandling = false;
-					cancel = false;
-				}, 1000 );
+				function start(e) {
+					if (e.touches && e.touches.length > 1 || e.targetTouches && e.targetTouches.length > 1) {
+						return false;
+					}
 
-				// make sure no modifiers are present. thx http://www.jacklmoore.com/notes/click-events/
-				if( ( e.which && e.which > 1 ) || e.shiftKey || e.altKey || e.metaKey || e.ctrlKey ){
-					return;
+					var coords = getCoords(e);
+					startX = coords[0];
+					startY = coords[1];
 				}
 
-				e.preventDefault();
-
-				// this part prevents a double callback from touch and mouse on the same tap
-
-				// if a scroll happened between touchstart and touchend
-				if( cancel || w.tapHandling && w.tapHandling !== e.type ){
-					cancel = false;
-					return;
+				// any touchscroll that results in > tolerance should cancel the tap
+				function move(e) {
+					if (!cancel) {
+						var coords = getCoords(e);
+						if (coords && (Math.abs(startY - coords[1]) > scrollTolerance || Math.abs(startX - coords[0]) > scrollTolerance)) {
+							cancel = true;
+						}
+					}
 				}
 
-				w.tapHandling = e.type;
-				trigger( e );
-			}
+				function end(e) {
+					clearTimeout(resetTimer);
+					resetTimer = setTimeout(function() {
+						w.tapHandling = false;
+						cancel = false;
+					}, 1000);
 
-			$el
-				.bind( "touchstart.tappy MSPointerDown.tappy", start )
-				.bind( "touchmove.tappy MSPointerMove.tappy", move )
-				.bind( "touchend.tappy MSPointerUp.tappy", end )
-				.bind( "click.tappy", end );
-		});
-	};
+					// make sure no modifiers are present. thx http://www.jacklmoore.com/notes/click-events/
+					if ((e.which && e.which > 1) || e.shiftKey || e.altKey || e.metaKey || e.ctrlKey) {
+						return;
+					}
 
-	var untap = function( $els ){
-		return $els.unbind( ".tappy" );
-	};
+					e.preventDefault();
 
-	// use special events api
-	if( $.event && $.event.special ){
-		$.event.special.tap = {
-			add: function( handleObj ) {
-				tap( $( this ) );
-			},
-			remove: function( handleObj ) {
-				untap( $( this ) );
-			}
+					// this part prevents a double callback from touch and mouse on the same tap
+
+					// if a scroll happened between touchstart and touchend
+					if (cancel || w.tapHandling && w.tapHandling !== e.type) {
+						cancel = false;
+						return;
+					}
+
+					w.tapHandling = e.type;
+					trigger(e);
+				}
+
+				$el
+					.bind("touchstart.tappy MSPointerDown.tappy", start)
+					.bind("touchmove.tappy MSPointerMove.tappy", move)
+					.bind("touchend.tappy MSPointerUp.tappy", end)
+					.bind("click.tappy", end);
+			});
 		};
-	}
-	else{
-		// monkeybind
-		var oldBind = $.fn.bind,
-			oldUnbind = $.fn.unbind;
-		$.fn.bind = function( evt ){
-			if( /(^| )tap( |$)/.test( evt ) ){
-				tap( this );
-			}
-			return oldBind.apply( this, arguments );
-		};
-		$.fn.unbind = function( evt ){
-			if( /(^| )tap( |$)/.test( evt ) ){
-				untap( this );
-			}
-			return oldUnbind.apply( this, arguments );
-		};
-	}
 
-}( this, jQuery ));
+		var untap = function($els) {
+			return $els.unbind(".tappy");
+		};
+
+		// use special events api
+		if ($.event && $.event.special) {
+			$.event.special.tap = {
+				add: function(handleObj) {
+					tap($(this));
+				},
+				remove: function(handleObj) {
+					untap($(this));
+				}
+			};
+		} else {
+			// monkeybind
+			var oldBind = $.fn.bind,
+				oldUnbind = $.fn.unbind;
+			$.fn.bind = function(evt) {
+				if (/(^| )tap( |$)/.test(evt)) {
+					tap(this);
+				}
+				return oldBind.apply(this, arguments);
+			};
+			$.fn.unbind = function(evt) {
+				if (/(^| )tap( |$)/.test(evt)) {
+					untap(this);
+				}
+				return oldUnbind.apply(this, arguments);
+			};
+		}
+
+	}(root, $));
+
+})(window || global || this);
